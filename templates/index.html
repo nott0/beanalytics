@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Result</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        h1, h2 {
+            margin-bottom: 20px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        .image-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        .image-container img {
+            margin: 10px;
+            max-width: 200px;
+            max-height: 200px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            padding-top: 50px;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.8);
+        }
+
+        .modal-content {
+            margin: auto;
+            display: block;
+            width: 80%;
+            max-width: 800px;
+        }
+
+        .modal-content img {
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Result</h1>
+    <div class="image-container">
+        <div>
+            <h2>Original Image</h2>
+            <a href="#" onclick="openModal('Original Image', '{{ original_image }}')">
+                <img src="data:image/jpeg;base64,{{ original_image }}" alt="Original Image">
+            </a>
+        </div>
+        <div>
+            <h2>Matching Image</h2>
+            <a href="#" onclick="openModal('Matching Image', '{{ matching_image }}')">
+                <img src="data:image/jpeg;base64,{{ matching_image }}" alt="Matching Image">
+            </a>
+        </div>
+        <div>
+            <h2>Processed Result Image</h2>
+            <a href="#" onclick="openModal('Processed Result Image', '{{ processed_image }}')">
+                <img src="data:image/jpeg;base64,{{ processed_image }}" alt="Processed Result Image">
+            </a>
+        </div>
+        <div>
+            <h2>Result Image</h2>
+            <a href="#" onclick="openModal('Result Image', '{{ result_image }}')">
+                <img src="data:image/jpeg;base64,{{ result_image }}" alt="Result Image">
+            </a>
+        </div>
+    </div>
+    <h2>Output Text</h2>
+    <ul>
+    {% for line in result_text %}
+        <li>{{ line }}</li>
+    {% endfor %}
+    </ul>
+
+    <!-- The Modal -->
+    <div id="myModal" class="modal">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <div class="modal-content">
+            <img id="modalImg" src="" alt="Enlarged Image">
+            <button onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        function openModal(imageTitle, imageData) {
+            document.getElementById("modalImg").src = "data:image/jpeg;base64," + imageData;
+            document.getElementById("myModal").style.display = "block";
+            document.getElementById("modalImg").alt = imageTitle;
+        }
+
+        function closeModal() {
+            document.getElementById("myModal").style.display = "none";
+        }
+    </script>
+</body>
+</html>
