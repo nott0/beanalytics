@@ -228,6 +228,5 @@ def index():
     else:
         return render_template('upload.html')  # Render a form to upload the image
 
-if __name__ == '__main__
-    port = int(os.environ.get('PORT', 5000)
-    app.run(debug=True, host='0.0.0.0', port=port)
+if __name__ == '__main__':
+    app.run()
