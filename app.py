@@ -1,7 +1,7 @@
 import os
 import cv2
 import numpy as np
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect
 import base64
 
 app = Flask(__name__)
@@ -18,31 +18,33 @@ def is_contour_in_roi(contour, roi):
     return roi_x1 < x < roi_x2 and roi_y1 < y < roi_y2
 
 def process_image(image_data):
-    # Assuming images are named 'image1.jpg' and 'image2.jpg'
-    image1 = cv2.cvtColor(cv2.imread('./Target.png'), cv2.COLOR_BGR2RGB)
+    # Read the target image once
+    image1 = cv2.imread('./Target.png')
+    if image1 is None:
+        raise ValueError("Could not load the target image")
+    image1 = cv2.cvtColor(image1, cv2.COLOR_BGR2RGB)
+
+    # Decode the uploaded image
     nparr = np.frombuffer(image_data, np.uint8)
     image2 = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
     if image2 is None:
         raise ValueError("Could not decode image")
-
     original_image = cv2_to_base64(image2)
     image2 = cv2.cvtColor(image2, cv2.COLOR_BGR2RGB)
 
-    # Initiate SIFT detector
-    sift = cv2.SIFT_create(nfeatures=5000)
+    # Initiate SIFT detector with reduced features
+    sift = cv2.SIFT_create(nfeatures=1000)
 
     # Find the keypoints and descriptors with SIFT
     kp1, des1 = sift.detectAndCompute(image1, None)
     kp2, des2 = sift.detectAndCompute(image2, None)
 
-    # FLANN parameters
+    # Use FLANN for matching descriptors
     FLANN_INDEX_KDTREE = 1
     index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
     search_params = dict(checks=50)
 
     flann = cv2.FlannBasedMatcher(index_params, search_params)
-    # Using FLANN for matching descriptors
     matches = flann.knnMatch(des2, des1, k=2)
 
     # Filter matches using the Lowe's ratio test
@@ -56,15 +58,15 @@ def process_image(image_data):
     points2 = np.float32([kp2[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
     points1 = np.float32([kp1[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
 
-    # Find homography
-    h, mask = cv2.findHomography(points2, points1, cv2.RANSAC, 5.0, maxIters=2000)
+    # Find homography with a reduced number of iterations
+    h, mask = cv2.findHomography(points2, points1, cv2.RANSAC, 5.0, maxIters=500)
 
     # Use homography to warp image2 to match the perspective of image1
     height, width, channels = image1.shape
     im2Reg = cv2.warpPerspective(image2, h, (width, height))
 
     # Define the width of the edge region
-    edge_width = 120  # Adjust this value as needed
+    edge_width = 120
 
     # Create a mask for the edges
     mask = np.zeros(image1.shape[:2], dtype=np.uint8)
@@ -110,7 +112,7 @@ def process_image(image_data):
     kernel = np.ones((3, 3), np.uint8)
     opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
     closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel, iterations=2)
-    sure_bg = cv2.dilate(closing, kernel, iterations=3)
+    sure_bg = cv2.dilate(closing, kernel, iterations=2)
     dist_transform = cv2.distanceTransform(closing, cv2.DIST_L2, 5)
     _, sure_fg = cv2.threshold(dist_transform, 0.5 * dist_transform.max(), 255, 0)
     sure_fg = np.uint8(sure_fg)
