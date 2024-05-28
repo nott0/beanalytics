@@ -33,7 +33,7 @@ def process_image(image_data):
     image2 = cv2.cvtColor(image2, cv2.COLOR_BGR2RGB)
 
     # Initiate SIFT detector with reduced features
-    sift = cv2.SIFT_create(nfeatures=1000)
+    sift = cv2.SIFT_create(nfeatures=100)
 
     # Find the keypoints and descriptors with SIFT
     kp1, des1 = sift.detectAndCompute(image1, None)
@@ -41,7 +41,7 @@ def process_image(image_data):
 
     # Use FLANN for matching descriptors
     FLANN_INDEX_KDTREE = 1
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=3)
     search_params = dict(checks=50)
 
     flann = cv2.FlannBasedMatcher(index_params, search_params)
@@ -59,7 +59,7 @@ def process_image(image_data):
     points1 = np.float32([kp1[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
 
     # Find homography with a reduced number of iterations
-    h, mask = cv2.findHomography(points2, points1, cv2.RANSAC, 5.0, maxIters=500)
+    h, mask = cv2.findHomography(points2, points1, cv2.RANSAC, 5.0, maxIters=300)
 
     # Use homography to warp image2 to match the perspective of image1
     height, width, channels = image1.shape
