@@ -11,6 +11,16 @@ def cv2_to_base64(image):
     _, buffer = cv2.imencode('.jpg', image)
     return base64.b64encode(buffer).decode('utf-8')
 
+# Function to resize image by width while preserving the aspect ratio
+def resize_image_by_width(image, max_width):
+    height, width = image.shape[:2]
+    if width > max_width:
+        scaling_factor = max_width / width
+        new_size = (max_width, int(height * scaling_factor))
+        resized_image = cv2.resize(image, new_size, interpolation=cv2.INTER_AREA)
+        return resized_image
+    return image
+
 # Function to check if a contour is within the ROI
 def is_contour_in_roi(contour, roi):
     x, y, w, h = cv2.boundingRect(contour)
@@ -29,11 +39,16 @@ def process_image(image_data):
     image2 = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     if image2 is None:
         raise ValueError("Could not decode image")
+
+    # Resize the uploaded image by width
+    max_width = 800  # Adjust this value as needed
+    image2 = resize_image_by_width(image2, max_width)
+
     original_image = cv2_to_base64(image2)
     image2 = cv2.cvtColor(image2, cv2.COLOR_BGR2RGB)
 
     # Initiate SIFT detector with reduced features
-    sift = cv2.SIFT_create(nfeatures=100)
+    sift = cv2.SIFT_create(nfeatures=1000)
 
     # Find the keypoints and descriptors with SIFT
     kp1, des1 = sift.detectAndCompute(image1, None)
@@ -41,7 +56,7 @@ def process_image(image_data):
 
     # Use FLANN for matching descriptors
     FLANN_INDEX_KDTREE = 1
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=3)
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
     search_params = dict(checks=50)
 
     flann = cv2.FlannBasedMatcher(index_params, search_params)
@@ -59,14 +74,14 @@ def process_image(image_data):
     points1 = np.float32([kp1[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
 
     # Find homography with a reduced number of iterations
-    h, mask = cv2.findHomography(points2, points1, cv2.RANSAC, 5.0, maxIters=300)
+    h, mask = cv2.findHomography(points2, points1, cv2.RANSAC, 5.0, maxIters=500)
 
     # Use homography to warp image2 to match the perspective of image1
     height, width, channels = image1.shape
     im2Reg = cv2.warpPerspective(image2, h, (width, height))
 
     # Define the width of the edge region
-    edge_width = 120
+    edge_width = 1024  # Adjust this value as needed
 
     # Create a mask for the edges
     mask = np.zeros(image1.shape[:2], dtype=np.uint8)
